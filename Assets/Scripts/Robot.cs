@@ -2,14 +2,14 @@ using System.Collections;
 using UnityEngine;
 
 
-public interface IRobotState
+public interface IObjectState
 {
     void Enter();
     void Update();
     void Exit();
 }
 
-public class IdleState: IRobotState
+public class IdleState: IObjectState
 {
     private float idleTime = 2f;
     private float timer = 0f;
@@ -28,12 +28,10 @@ public class IdleState: IRobotState
 
     public void Update()
     {
-        Debug.Log("The timer is " + timer);
         timer += Time.fixedDeltaTime;
         if (timer >= idleTime)
         {
             timer = 0f;
-            Debug.Log("Chnage state to move");
             controller.ChangeState(new MoveState(controller));
         }
     }
@@ -44,7 +42,7 @@ public class IdleState: IRobotState
     }
 }
 
-public class MoveState : IRobotState
+public class MoveState : IObjectState
 {
     private Robot controller;
     private float moveSpeed = 3f;
@@ -59,7 +57,6 @@ public class MoveState : IRobotState
     public void Enter()
     {
         Debug.Log("Enter move state");
-        // Compute first target cell once
         SetNextTarget();
     }
 
@@ -121,7 +118,7 @@ public class MoveState : IRobotState
     }
 }
 
-public class PushBackState : IRobotState
+public class PushBackState : IObjectState
 {
     private Robot controller;
     private float pushBackDistance = 1f;
@@ -166,9 +163,110 @@ public class PushBackState : IRobotState
     }
 }
 
-public class Robot : MonoBehaviour
+public class PullAlignState : IObjectState
 {
-    private IRobotState currentState;
+    private IPullableObject controller;
+    private Vector3 centerOfCurrentCell;
+    private Vector3 finalDestination;
+    private float alignSpeed = 3f;
+
+    public PullAlignState(IPullableObject controller)
+    {
+        this.controller = controller;
+        finalDestination = controller.GetDestination() ?? Vector3.zero;
+    }
+    public void Enter()
+    {
+        Debug.Log("Enter pull align state");
+        Vector3 currentPosition = controller.GetTransform().position;
+        centerOfCurrentCell = new Vector3(
+            Mathf.Round(currentPosition.x),
+            currentPosition.y,
+            Mathf.Round(finalDestination.z)
+        );
+    }
+
+    public void Update()
+    {
+        float step = alignSpeed * Time.fixedDeltaTime;
+        float dist = Vector3.Distance(controller.GetTransform().position, centerOfCurrentCell);
+
+        if (dist <= step)
+        {
+            float remaining = step - dist;
+            controller.GetTransform().position = centerOfCurrentCell;
+            controller.ChangeToPullingState(controller, finalDestination, remaining);
+        }
+
+        else
+        {
+            controller.GetTransform().position = Vector3.MoveTowards(controller.GetTransform().position, centerOfCurrentCell, step);
+        }
+    }
+
+    public void Exit()
+    {
+
+    }
+
+}
+
+public class BeingPulledState : IObjectState
+{
+    private IPullableObject controller;
+    private Vector3 targetPosition;
+    private Vector3 finalDestination;
+    private float moveSpeed = 5f; 
+    private float carryoverBudget;
+
+    public BeingPulledState(IPullableObject controller, Vector3 finalDestination, float leftoverMovement)
+    {
+        this.controller = controller;
+        this.finalDestination = finalDestination;
+        this.carryoverBudget = leftoverMovement;
+    }
+
+    public void Enter()
+    {
+        Debug.Log("Robot is being pulled!");
+        SetNextTargetCell();
+        controller.GetTransform().position = Vector3.MoveTowards(controller.GetTransform().position, targetPosition, carryoverBudget);
+    }
+
+    public void Update()
+    {
+        float step = moveSpeed * Time.fixedDeltaTime;
+        float dist = Vector3.Distance(controller.GetTransform().position, targetPosition);
+
+        if (dist <= step)
+        {
+            float remaining = step - dist;
+            controller.GetTransform().position = targetPosition;
+
+            SetNextTargetCell();
+            controller.GetTransform().position = Vector3.MoveTowards(controller.GetTransform().position, targetPosition, remaining);
+        }
+        else
+        {
+            controller.GetTransform().position = Vector3.MoveTowards(controller.GetTransform().position, targetPosition, step);
+        }
+    }
+
+    private void SetNextTargetCell()
+    {
+        Vector3 directionToDestination = (finalDestination - controller.GetTransform().position).normalized;
+        // Snap direction to integer grid movements
+        directionToDestination = new Vector3(Mathf.Round(directionToDestination.x), 0, Mathf.Round(directionToDestination.z));
+        targetPosition = controller.GetTransform().position + directionToDestination;
+    }
+
+    public void Exit() { }
+}
+
+public class Robot : MonoBehaviour, IPullableObject
+{
+    private IObjectState currentState;
+    private Vector3 pullDestination;
 
     void Start()
     {
@@ -177,13 +275,47 @@ public class Robot : MonoBehaviour
 
     void FixedUpdate()
     {
+        Debug.Log("Current Robot State: " + currentState.GetType().Name);
         currentState?.Update();
     }
 
-    public void ChangeState(IRobotState newState)
+    public void ChangeState(IObjectState newState)
     {
         currentState?.Exit();
         currentState = newState;
         currentState.Enter();
+    }
+
+    public void PullTowardsTarget(Vector3 target)
+    {
+        if (pullDestination == target) return; // Already pulling towards this target
+        pullDestination = target;
+        ChangeState(new PullAlignState(this));
+    }
+
+    public Vector3? GetDestination()
+    {
+        return pullDestination;
+    }
+
+    public Transform GetTransform()
+    {
+        return transform;
+    }
+
+    public void StopPulling()
+    {
+        if (!(currentState is BeingPulledState))
+        {
+            Debug.Log("Current state is not BeingPulledState, ignoring stop pull command");
+            return;
+        }
+        pullDestination = Vector3.zero;
+        ChangeState(new IdleState(this));
+    }
+
+    public void ChangeToPullingState(IPullableObject controller, Vector3 finalDestination, float remaining)
+    {
+        ChangeState(new BeingPulledState(controller, finalDestination, remaining));
     }
 }
