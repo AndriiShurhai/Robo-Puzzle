@@ -195,6 +195,7 @@ public class PullAlignState : IObjectState
         {
             float remaining = step - dist;
             controller.GetTransform().position = centerOfCurrentCell;
+
             controller.ChangeToPullingState(controller, finalDestination, remaining);
         }
 
@@ -218,6 +219,7 @@ public class BeingPulledState : IObjectState
     private Vector3 finalDestination;
     private float moveSpeed = 5f; 
     private float carryoverBudget;
+    private int cellSize = 1;
 
     public BeingPulledState(IPullableObject controller, Vector3 finalDestination, float leftoverMovement)
     {
@@ -243,6 +245,11 @@ public class BeingPulledState : IObjectState
             float remaining = step - dist;
             controller.GetTransform().position = targetPosition;
 
+            if (IsPathBlocked())
+            {
+                return;
+            }
+
             SetNextTargetCell();
             controller.GetTransform().position = Vector3.MoveTowards(controller.GetTransform().position, targetPosition, remaining);
         }
@@ -261,6 +268,25 @@ public class BeingPulledState : IObjectState
     }
 
     public void Exit() { }
+
+    private bool IsPathBlocked()
+    {
+        RaycastHit hit;
+        int layerMask = LayerMask.GetMask("Walls");
+
+        float checkDistance = cellSize * 1.5f;
+
+        Vector3 rayOrigin = controller.GetTransform().position + (Vector3.up * 0.5f);
+
+        if (Physics.Raycast(rayOrigin, controller.GetTransform().forward, out hit, checkDistance, layerMask))
+        {
+            if (hit.collider.CompareTag("Wall"))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 public class Robot : MonoBehaviour, IPullableObject

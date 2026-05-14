@@ -82,6 +82,7 @@ public class MagnetActiveState : ISwitchableToolState
 {
     private Magnet controller;
     private IPullableObject currentlyPulledObject;
+    private List<IPullableObject> currentlyPulledObjects;
     public MagnetActiveState(Magnet controller)
     {
         this.controller = controller;
@@ -90,6 +91,7 @@ public class MagnetActiveState : ISwitchableToolState
     public void Enter()
     {
         Debug.Log("Enter active magnet state");
+        currentlyPulledObjects = new List<IPullableObject>();
     }
 
     public void Update()
@@ -107,10 +109,11 @@ public class MagnetActiveState : ISwitchableToolState
             foreach (var hit in hits)
             {
                 IPullableObject obj = hit.collider.GetComponent<IPullableObject>();
-                if (obj != null)
+                if (obj != null && !currentlyPulledObjects.Contains(obj))
                 {
                     float dist = Vector3.Distance(controller.transform.position, hit.transform.position);
                     pullableObjects.Add(new PullData { Pullable = obj, Distance = dist });
+                    currentlyPulledObjects.Add(obj);
                 }
 
             }
@@ -122,6 +125,7 @@ public class MagnetActiveState : ISwitchableToolState
                 float queueOffset = controller.HoldingDistance + (i * 1f);
                 Vector3 destination = controller.transform.position + (controller.transform.forward * queueOffset);
 
+                Debug.Log("Destination for " + pullableObjects[i].Pullable.GetTransform().name + ": " + destination);
                 pullableObjects[i].Pullable.PullTowardsTarget(destination);
             }
         }
@@ -132,6 +136,7 @@ public class MagnetActiveState : ISwitchableToolState
 
     public void Exit()
     {
+        currentlyPulledObjects.Clear();
     }
 }
 
