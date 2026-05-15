@@ -23,7 +23,7 @@ public class TimerController : MonoBehaviour
         _timer.OnCompleted += HandleTimerEnd;
     }
 
-    private void Start()
+    public void RunTimer()
     {
         _timer.Play();
     }

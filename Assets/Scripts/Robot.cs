@@ -28,12 +28,6 @@ public class IdleState: IObjectState
 
     public void Update()
     {
-        timer += Time.fixedDeltaTime;
-        if (timer >= idleTime)
-        {
-            timer = 0f;
-            controller.ChangeState(new MoveState(controller));
-        }
     }
 
     public void Exit()
@@ -294,9 +288,12 @@ public class Robot : MonoBehaviour, IPullableObject
     private IObjectState currentState;
     private Vector3 pullDestination;
 
-    void Start()
+    private void Awake()
     {
         ChangeState(new IdleState(this));
+    }
+    void Start()
+    {
     }
 
     void FixedUpdate()
@@ -327,6 +324,11 @@ public class Robot : MonoBehaviour, IPullableObject
     public Transform GetTransform()
     {
         return transform;
+    }
+
+    public void StartMoving()
+    {
+        ChangeState(new MoveState(this));
     }
 
     public void StopPulling()
