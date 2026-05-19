@@ -119,6 +119,8 @@ public class PushBackState : IObjectState
     private float pushBackSpeed = 3f;
     private Vector3 targetPosition;
 
+    private CountdownTimer _timer;
+
     public PushBackState(Robot controller)
     {
         this.controller = controller;
@@ -128,8 +130,11 @@ public class PushBackState : IObjectState
     {
         Debug.Log("Enter push back state");
 
+        _timer = new CountdownTimer(1f);
         Vector3 pushDirection = -controller.transform.forward;
         targetPosition = controller.transform.position + (pushDirection * pushBackDistance);
+        _timer.OnCompleted += () => controller.ChangeState(new MoveState(controller));
+        _timer.Play(1f);
     }
 
     public void Update()
@@ -140,7 +145,7 @@ public class PushBackState : IObjectState
         if (dist <= step)
         {
             controller.transform.position = targetPosition;
-            controller.ChangeState(new IdleState(controller));
+            _timer.Tick(Time.deltaTime);
         }
         else
         {
@@ -339,7 +344,7 @@ public class Robot : MonoBehaviour, IPullableObject
             return;
         }
         pullDestination = Vector3.zero;
-        ChangeState(new IdleState(this));
+        ChangeState(new MoveState(this));
     }
 
     public void ChangeToPullingState(IPullableObject controller, Vector3 finalDestination, float remaining)

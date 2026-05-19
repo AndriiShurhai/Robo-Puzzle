@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.UI;
 public interface ISwitchableToolState
 {
     void Enter();
@@ -97,6 +98,7 @@ public class MagnetActiveState : ISwitchableToolState
     public void Update()
     {
         Debug.Log("Magnet active state update");
+        Vector3Int transformInt = Vector3Int.RoundToInt(controller.transform.position);
         Vector3 origin = controller.transform.position + (Vector3.up * 0.5f);
         int layerMask = LayerMask.GetMask("Magnetic Objects");
 
@@ -123,7 +125,7 @@ public class MagnetActiveState : ISwitchableToolState
             for (int i = 0; i < pullableObjects.Count; i++)
             {
                 float queueOffset = controller.HoldingDistance + (i * 1f);
-                Vector3 destination = controller.transform.position + (controller.transform.forward * queueOffset);
+                Vector3 destination = transformInt + (controller.transform.forward * queueOffset);
 
                 Debug.Log("Destination for " + pullableObjects[i].Pullable.GetTransform().name + ": " + destination);
                 pullableObjects[i].Pullable.PullTowardsTarget(destination);

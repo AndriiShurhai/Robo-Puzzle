@@ -59,7 +59,7 @@ public class GameInput : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (Instance == null) Instance = this;
+        if (Instance == this) Instance = null;
     }
 
     private void BindActions()
