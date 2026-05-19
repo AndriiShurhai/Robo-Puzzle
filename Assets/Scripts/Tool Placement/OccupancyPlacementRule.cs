@@ -9,7 +9,7 @@ public class OccupancyPlacementRule : PlacementRule
     {
         if (ToolPlacementSystem.Instance == null) return false;
 
-        return !ToolPlacementSystem.Instance.IsCellOccuped(context.Cell);
+        return !ToolPlacementSystem.Instance.IsCellOccupied(context.Cell);
     }
     public override string InvalidReason => "Space is occupied.";
 }

@@ -19,7 +19,7 @@ public class CountdownTimer
 
     public CountdownTimer(float initialTime)
     {
-        _initialTime = Math.Max(0f, initialTime);
+        _initialTime = Mathf.Max(0f, initialTime);
     }
 
     public void Tick(float deltaTime)
@@ -37,16 +37,17 @@ public class CountdownTimer
         }
     }
 
-    public void Play(float? customTime = null)
+    public void Play()
     {
-        if (customTime.HasValue)
-        {
-            _initialTime = Math.Max(0f, customTime.Value);
-        }
-
         _currentTime = _initialTime;
         State = TimerState.Running;
         OnStarted?.Invoke();
+    }
+    public void Play(float customTime)
+    {
+        _initialTime = Mathf.Max(0f, customTime);
+
+        Play();
     }
 
     public void Pause()
@@ -72,6 +73,6 @@ public class CountdownTimer
 
     public void AddTime(float amount)
     {
-        _currentTime = Math.Max(0f, _currentTime + amount);
+        _currentTime = Mathf.Max(0f, _currentTime + amount);
     }
 }

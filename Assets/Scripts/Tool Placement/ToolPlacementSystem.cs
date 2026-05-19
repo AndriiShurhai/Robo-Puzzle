@@ -70,7 +70,7 @@ public class ToolPlacementSystem : MonoBehaviour
     {
         StopPlacement();
     }
-    public bool IsCellOccuped(Vector3Int cell)
+    public bool IsCellOccupied(Vector3Int cell)
     {
         return _occupiedCells.Contains(cell);
     }

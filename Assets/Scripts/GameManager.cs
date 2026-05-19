@@ -14,6 +14,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Robot player;
 
     private GameState currentState;
+
+    public GameState CurrentState { get => currentState; }
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -21,11 +23,8 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-        else
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
+        Instance = this;
+        
 
         currentState = GameState.Exploring;
     }
@@ -36,6 +35,12 @@ public class GameManager : MonoBehaviour
         timerController.onTimerEnd += OnLevelFailed;
 
         player.StartMoving();
+    }
+
+    private void OnDestroy()
+    {
+        finishTrigger.OnLevelComplete -= OnLevelComplete;
+        timerController.onTimerEnd -= OnLevelFailed;
     }
 
     private void OnLevelComplete()

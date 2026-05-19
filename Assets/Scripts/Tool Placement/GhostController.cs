@@ -4,7 +4,7 @@ using System.Collections;
 public class GhostController : MonoBehaviour
 {
     [Header("Materials")]
-    [Tooltip("Semi-tranparent material applied to all renders. Need _BaseColor")]
+    [Tooltip("Semi-transparent material applied to all renders. Need _BaseColor")]
     [SerializeField] private Material ghostMaterial;
 
     [Header("Colors")]

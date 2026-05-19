@@ -18,14 +18,14 @@ public class GameInput : MonoBehaviour
 
     [SerializeField] private InputActionAsset inputActions;
 
-    InputActionMap _cameraMap;
+    private InputActionMap _cameraMap;
 
-    InputAction _pan;
-    InputAction _zoom;
-    InputAction _orbitHeld;
-    InputAction _dragHeld;
-    InputAction _mouseDelta;
-    InputAction _mousePosition;
+    private InputAction _pan;
+    private InputAction _zoom;
+    private InputAction _orbitHeld;
+    private InputAction _dragHeld;
+    private InputAction _mouseDelta;
+    private InputAction _mousePosition;
 
 
     private void Awake()

@@ -26,29 +26,29 @@ public class CameraController : MonoBehaviour
     [SerializeField] private CameraMode startingMode = CameraMode.Free;
 
     [Header("Free - Pan")]
-    [SerializeField] float panSpeed = 25f;
-    [SerializeField] float panSmoothing = 10f;
-    [SerializeField] float mouseDragPanSpeed = 0.4f;
-    [SerializeField] bool enableEdgeScroll = false;
-    [SerializeField] float edgeThreshold = 15f; //px from screen edge to trigger edge scroll
+    [SerializeField] private float panSpeed = 25f;
+    [SerializeField] private float panSmoothing = 10f;
+    [SerializeField] private float mouseDragPanSpeed = 0.4f;
+    [SerializeField] private bool enableEdgeScroll = false;
+    [SerializeField] private float edgeThreshold = 15f; //px from screen edge to trigger edge scroll
 
     [Header("Free - Zoom")]
-    [SerializeField] float zoomSpeed = 600f;
-    [SerializeField] float minZoomDistance = 5f;
-    [SerializeField] float maxZoomDistance = 60f;
-    [SerializeField] float zoomSmoothing = 10f;
+    [SerializeField] private float zoomSpeed = 600f;
+    [SerializeField] private float minZoomDistance = 5f;
+    [SerializeField] private float maxZoomDistance = 60f;
+    [SerializeField] private float zoomSmoothing = 10f;
 
     [Header("Free - Orbit (right-mouse drag)")]
-    [SerializeField] float orbitSensetivity = 0.2f;
-    [SerializeField] float minPitch = 15f;
-    [SerializeField] float maxPitch = 85f;
-    [SerializeField] float rotSmoothing = 12f;
+    [SerializeField] private float orbitSensitivity = 0.2f;
+    [SerializeField] private float minPitch = 15f;
+    [SerializeField] private float maxPitch = 85f;
+    [SerializeField] private float rotSmoothing = 12f;
 
     [Header("Isometric Follow")]
-    [SerializeField] Transform followTarget;
-    [SerializeField] Vector3 followOffset = new Vector3 (-10f, 20f, -10f);
-    [SerializeField] float followSmoothing = 6f;
-    [SerializeField] Vector3 isoEuler = new Vector3(45f, 45f, 0f);
+    [SerializeField] private Transform followTarget;
+    [SerializeField] private Vector3 followOffset = new Vector3 (-10f, 20f, -10f);
+    [SerializeField] private float followSmoothing = 6f;
+    [SerializeField] private Vector3 isoEuler = new Vector3(45f, 45f, 0f);
 
     private CameraMode _currentMode;
 
@@ -149,8 +149,8 @@ public class CameraController : MonoBehaviour
         if (!GameInput.Instance.CameraOrbitHeld) return;
 
         Vector2 delta = GameInput.Instance.MouseDelta;
-        _targetYaw += delta.x * orbitSensetivity;
-        _targetPitch -= delta.y * orbitSensetivity;
+        _targetYaw += delta.x * orbitSensitivity;
+        _targetPitch -= delta.y * orbitSensitivity;
         _targetPitch = Mathf.Clamp(_targetPitch, minPitch, maxPitch);
     }
 

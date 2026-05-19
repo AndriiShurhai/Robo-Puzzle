@@ -1,85 +1,65 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem.XR;
 
 
-public interface IObjectState
+
+public class IdleState: IState
 {
-    void Enter();
-    void Update();
-    void Exit();
-}
-
-public class IdleState: IObjectState
-{
-    private float idleTime = 2f;
-    private float timer = 0f;
-    private Robot controller;
+    private Robot _controller;
 
     public IdleState(Robot controller)
     {
-        this.controller = controller;
+        this._controller = controller;
     }
 
-    public void Enter()
-    {
-        Debug.Log("Enter idle state");
-        timer = 0f;
-    }
+    public void Enter() { }
 
-    public void Update()
-    {
-    }
+    public void Update() { }
 
-    public void Exit()
-    {
-        // Clean up idle state if necessary
-    }
+    public void Exit() { }
 }
 
-public class MoveState : IObjectState
+public class MoveState : IState
 {
-    private Robot controller;
-    private float moveSpeed = 3f;
-    private int cellSize = 1;
-    private Vector3 targetPosition;
+    private Robot _controller;
+    private Vector3 _targetPosition;
 
     public MoveState(Robot controller)
     {
-        this.controller = controller;
+        this._controller = controller;
     }
 
     public void Enter()
     {
-        Debug.Log("Enter move state");
         SetNextTarget();
     }
 
     public void Update()
     {
-        float step = moveSpeed * Time.fixedDeltaTime;
-        float dist = Vector3.Distance(controller.transform.position, targetPosition);
+        float step = _controller.MoveSpeed * Time.fixedDeltaTime;
+        float dist = Vector3.Distance(_controller.transform.position, _targetPosition);
 
         if (dist <= step)
         {
             // Use remaining budget to continue into the next cell immediately
             float remaining = step - dist;
-            controller.transform.position = targetPosition;
+            _controller.transform.position = _targetPosition;
 
-            if (IsPathBlocked())
+            if (Robot.IsPathBlocked(_controller.transform, _controller.CellSize * 1.5f))
             {
-                Debug.Log("Path is blocked, switching to push back state");
-                controller.ChangeState(new PushBackState(controller));
+                _controller.ChangeState(new PushBackState(_controller));
                 return;
             }
 
             SetNextTarget();
-            controller.transform.position += controller.transform.forward * remaining;
+            _controller.transform.position += _controller.transform.forward * remaining;
         }
         else
         {
-            controller.transform.position = Vector3.MoveTowards(
-                controller.transform.position,
-                targetPosition,
+            _controller.transform.position = Vector3.MoveTowards(
+                _controller.transform.position,
+                _targetPosition,
                 step
             );
         }
@@ -89,41 +69,21 @@ public class MoveState : IObjectState
 
     private void SetNextTarget()
     {
-        targetPosition = controller.transform.position + controller.transform.forward * cellSize;
-    }
-
-    private bool IsPathBlocked()
-    {
-        RaycastHit hit;
-        int layerMask = LayerMask.GetMask("Walls");
-
-        float checkDistance = cellSize * 1.5f;
-
-        Vector3 rayOrigin = controller.transform.position + (Vector3.up * 0.5f);
-
-        if (Physics.Raycast(rayOrigin, controller.transform.forward, out hit, checkDistance, layerMask))
-        {
-            if (hit.collider.CompareTag("Wall"))
-            {
-                return true;
-            }
-        }
-        return false;
+        _targetPosition = _controller.transform.position + _controller.transform.forward * _controller.CellSize;
     }
 }
 
-public class PushBackState : IObjectState
+public class PushBackState : IState
 {
-    private Robot controller;
-    private float pushBackDistance = 1f;
-    private float pushBackSpeed = 3f;
-    private Vector3 targetPosition;
+    private Robot _controller;
+
+    private Vector3 _targetPosition;
 
     private CountdownTimer _timer;
 
     public PushBackState(Robot controller)
     {
-        this.controller = controller;
+        this._controller = controller;
     }
 
     public void Enter()
@@ -131,167 +91,186 @@ public class PushBackState : IObjectState
         Debug.Log("Enter push back state");
 
         _timer = new CountdownTimer(1f);
-        Vector3 pushDirection = -controller.transform.forward;
-        targetPosition = controller.transform.position + (pushDirection * pushBackDistance);
-        _timer.OnCompleted += () => controller.ChangeState(new MoveState(controller));
+        Vector3 pushDirection = -_controller.transform.forward;
+        _targetPosition = _controller.transform.position + (pushDirection * _controller.PushBackDistance);
+        _timer.OnCompleted += () => _controller.ChangeState(new MoveState(_controller));
         _timer.Play(1f);
     }
 
     public void Update()
     {
-        float step = pushBackSpeed * Time.fixedDeltaTime;
-        float dist = Vector3.Distance(controller.transform.position, targetPosition);
+        float step = _controller.PushBackSpeed * Time.fixedDeltaTime;
+        float dist = Vector3.Distance(_controller.transform.position, _targetPosition);
 
         if (dist <= step)
         {
-            controller.transform.position = targetPosition;
+            _controller.transform.position = _targetPosition;
             _timer.Tick(Time.deltaTime);
         }
         else
         {
-            controller.transform.position = Vector3.MoveTowards(
-                controller.transform.position,
-                targetPosition,
+            _controller.transform.position = Vector3.MoveTowards(
+                _controller.transform.position,
+                _targetPosition,
                 step
             );
         }
     }
 
-    public void Exit()
-    {
-    }
+    public void Exit() { }
 }
 
-public class PullAlignState : IObjectState
+public class PullAlignState : IState
 {
-    private IPullableObject controller;
-    private Vector3 centerOfCurrentCell;
-    private Vector3 finalDestination;
-    private float alignSpeed = 3f;
+    private IPullableObject _controller;
+    private float _alignSpeed;
+    private Vector3 _finalDestination;
+    private Vector3 _alignTarget;
 
-    public PullAlignState(IPullableObject controller)
+    public PullAlignState(IPullableObject controller, float alignSpeed)
     {
-        this.controller = controller;
-        finalDestination = controller.GetDestination() ?? Vector3.zero;
+        this._controller = controller;
+        this._alignSpeed = alignSpeed;
+        _finalDestination = controller.GetDestination() ?? Vector3.zero;
     }
     public void Enter()
     {
         Debug.Log("Enter pull align state");
-        Vector3 currentPosition = controller.GetTransform().position;
-        centerOfCurrentCell = new Vector3(
-            Mathf.Round(currentPosition.x),
-            currentPosition.y,
-            Mathf.Round(finalDestination.z)
-        );
+        Vector3 currentPos = _controller.GetTransform().position;
+
+        float distX = Mathf.Abs(_finalDestination.x - currentPos.x);
+        float distZ = Mathf.Abs(_finalDestination.z - currentPos.z);
+
+        
+        if (distX > distZ)
+        {
+            _alignTarget = new Vector3(
+                Mathf.Round(currentPos.x), // Stay in current X column (snapped to grid)
+                currentPos.y,              // Keep height
+                _finalDestination.z         // Align exactly with magnet's Z row
+            );
+        }
+        else 
+        {
+            _alignTarget = new Vector3(
+                _finalDestination.x,        // Align exactly with magnet's X column
+                currentPos.y,              // Keep height
+                Mathf.Round(currentPos.z)  // Stay in current Z row (snapped to grid)
+            );
+        }
     }
 
     public void Update()
     {
-        float step = alignSpeed * Time.fixedDeltaTime;
-        float dist = Vector3.Distance(controller.GetTransform().position, centerOfCurrentCell);
+        Transform controllerTransform = _controller.GetTransform();
+        float step = _alignSpeed * Time.fixedDeltaTime;
+        float dist = Vector3.Distance(controllerTransform.position, _alignTarget);
 
         if (dist <= step)
         {
             float remaining = step - dist;
-            controller.GetTransform().position = centerOfCurrentCell;
-
-            controller.ChangeToPullingState(controller, finalDestination, remaining);
+            controllerTransform.position = _alignTarget;
+            _controller.ChangeToPullingState(_controller, _finalDestination, remaining);
         }
 
         else
         {
-            controller.GetTransform().position = Vector3.MoveTowards(controller.GetTransform().position, centerOfCurrentCell, step);
+            controllerTransform.position = Vector3.MoveTowards(controllerTransform.position, _alignTarget, step);
         }
     }
 
-    public void Exit()
-    {
-
-    }
-
+    public void Exit() { }
 }
 
-public class BeingPulledState : IObjectState
+public class BeingPulledState : IState
 {
-    private IPullableObject controller;
-    private Vector3 targetPosition;
-    private Vector3 finalDestination;
-    private float moveSpeed = 5f; 
-    private float carryoverBudget;
-    private int cellSize = 1;
+    private IPullableObject _controller;
+    private float _moveSpeed = 5f; 
+    private float _carryoverBudget;
+    private int _cellSize = 1;
+    private Vector3 _targetPosition;
+    private Vector3 _finalDestination;
 
-    public BeingPulledState(IPullableObject controller, Vector3 finalDestination, float leftoverMovement)
+    public BeingPulledState(
+        IPullableObject controller, 
+        Vector3 finalDestination, 
+        float leftoverMovement,
+        float moveSpeed,
+        float cellSize)
     {
-        this.controller = controller;
-        this.finalDestination = finalDestination;
-        this.carryoverBudget = leftoverMovement;
+        this._controller = controller;
+        this._finalDestination = finalDestination;
+        this._carryoverBudget = leftoverMovement;
+        this._moveSpeed = moveSpeed;
+        this._cellSize = (int)cellSize;
     }
 
     public void Enter()
     {
-        Debug.Log("Robot is being pulled!");
         SetNextTargetCell();
-        controller.GetTransform().position = Vector3.MoveTowards(controller.GetTransform().position, targetPosition, carryoverBudget);
+        _controller.GetTransform().position = Vector3.MoveTowards(_controller.GetTransform().position, _targetPosition, _carryoverBudget);
     }
 
     public void Update()
     {
-        float step = moveSpeed * Time.fixedDeltaTime;
-        float dist = Vector3.Distance(controller.GetTransform().position, targetPosition);
+        Transform controllerTransform = _controller.GetTransform();
+        float step = _moveSpeed * Time.fixedDeltaTime;
+        float dist = Vector3.Distance(controllerTransform.position, _targetPosition);
 
         if (dist <= step)
         {
             float remaining = step - dist;
-            controller.GetTransform().position = targetPosition;
+            controllerTransform.position = _targetPosition;
 
-            if (IsPathBlocked())
+            if (Robot.IsPathBlocked(controllerTransform, _cellSize * 1.5f))
             {
                 return;
             }
 
             SetNextTargetCell();
-            controller.GetTransform().position = Vector3.MoveTowards(controller.GetTransform().position, targetPosition, remaining);
+            controllerTransform.position = Vector3.MoveTowards(controllerTransform.position, _targetPosition, remaining);
         }
         else
         {
-            controller.GetTransform().position = Vector3.MoveTowards(controller.GetTransform().position, targetPosition, step);
+            controllerTransform.position = Vector3.MoveTowards(controllerTransform.position, _targetPosition, step);
         }
     }
 
     private void SetNextTargetCell()
     {
-        Vector3 directionToDestination = (finalDestination - controller.GetTransform().position).normalized;
+        Vector3 directionToDestination = (_finalDestination - _controller.GetTransform().position).normalized;
         // Snap direction to integer grid movements
         directionToDestination = new Vector3(Mathf.Round(directionToDestination.x), 0, Mathf.Round(directionToDestination.z));
-        targetPosition = controller.GetTransform().position + directionToDestination;
+        _targetPosition = _controller.GetTransform().position + directionToDestination;
     }
 
     public void Exit() { }
-
-    private bool IsPathBlocked()
-    {
-        RaycastHit hit;
-        int layerMask = LayerMask.GetMask("Walls");
-
-        float checkDistance = cellSize * 1.5f;
-
-        Vector3 rayOrigin = controller.GetTransform().position + (Vector3.up * 0.5f);
-
-        if (Physics.Raycast(rayOrigin, controller.GetTransform().forward, out hit, checkDistance, layerMask))
-        {
-            if (hit.collider.CompareTag("Wall"))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
 }
 
 public class Robot : MonoBehaviour, IPullableObject
 {
-    private IObjectState currentState;
-    private Vector3 pullDestination;
+    [Header("Movement")]
+    [SerializeField] private float moveSpeed = 3f;
+    [SerializeField] private int cellSize = 1;
+
+    [Header("Push Back")]
+    [SerializeField] private float pushBackDistance = 1f;
+    [SerializeField] private float pushBackSpeed = 3f;
+
+    [Header("Being Pulled")]
+    [SerializeField] private float alignSpeed = 3f;
+    [SerializeField] private float pulledMoveSpeed = 5f;
+
+
+    public float MoveSpeed => moveSpeed;
+    public int CellSize => cellSize;
+    public float PushBackDistance => pushBackDistance;
+    public float PushBackSpeed => pushBackSpeed;
+    public float AlignSpeed => alignSpeed;
+    public float PulledMoveSpeed => pulledMoveSpeed;
+
+    private IState _currentState;
+    private Vector3 _pullDestination;
 
     private void Awake()
     {
@@ -303,27 +282,27 @@ public class Robot : MonoBehaviour, IPullableObject
 
     void FixedUpdate()
     {
-        Debug.Log("Current Robot State: " + currentState.GetType().Name);
-        currentState?.Update();
+        Debug.Log("Current Robot State: " + _currentState.GetType().Name);
+        _currentState?.Update();
     }
 
-    public void ChangeState(IObjectState newState)
+    public void ChangeState(IState newState)
     {
-        currentState?.Exit();
-        currentState = newState;
-        currentState.Enter();
+        _currentState?.Exit();
+        _currentState = newState;
+        _currentState.Enter();
     }
 
     public void PullTowardsTarget(Vector3 target)
     {
-        if (pullDestination == target) return; // Already pulling towards this target
-        pullDestination = target;
-        ChangeState(new PullAlignState(this));
+        if (_pullDestination == target) return; // Already pulling towards this target
+        _pullDestination = target;
+        ChangeState(new PullAlignState(this, alignSpeed));
     }
 
     public Vector3? GetDestination()
     {
-        return pullDestination;
+        return _pullDestination;
     }
 
     public Transform GetTransform()
@@ -338,17 +317,34 @@ public class Robot : MonoBehaviour, IPullableObject
 
     public void StopPulling()
     {
-        if (!(currentState is BeingPulledState))
+        if (!(_currentState is BeingPulledState))
         {
             Debug.Log("Current state is not BeingPulledState, ignoring stop pull command");
             return;
         }
-        pullDestination = Vector3.zero;
+        _pullDestination = Vector3.zero;
         ChangeState(new MoveState(this));
     }
 
     public void ChangeToPullingState(IPullableObject controller, Vector3 finalDestination, float remaining)
     {
-        ChangeState(new BeingPulledState(controller, finalDestination, remaining));
+        ChangeState(new BeingPulledState(controller, finalDestination, remaining, moveSpeed, cellSize));
+    }
+    public static bool IsPathBlocked(Transform t, float checkDistance)
+    {
+        RaycastHit hit;
+        int layerMask = LayerMask.GetMask("Walls");
+
+
+        Vector3 rayOrigin = t.position + (Vector3.up * 0.5f);
+
+        if (Physics.Raycast(rayOrigin, t.forward, out hit, checkDistance, layerMask))
+        {
+            if (hit.collider.CompareTag("Wall"))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

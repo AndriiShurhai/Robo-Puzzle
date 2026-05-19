@@ -25,7 +25,7 @@ using System.Collections;
 ///     CellCenter = (2.5, 1.5, 2.5)  ← correct air cell in front of the wall
 /// </summary>
 /// 
-public class GridSnapper : MonoBehaviour
+public static class GridSnapper
 {
     public static Vector3Int WorldToCell(Vector3 hitPoint, Vector3 normal)
     {

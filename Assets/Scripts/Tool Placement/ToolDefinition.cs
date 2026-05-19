@@ -5,7 +5,7 @@
 
 public class ToolDefinition : ScriptableObject
 {
-    [Header("Identify")]
+    [Header("Identity")]
     public string displayName;
     public Sprite icon;
 
@@ -13,7 +13,7 @@ public class ToolDefinition : ScriptableObject
     [Tooltip("The real GameObject instantiated on valid placement")]
     public GameObject toolPrefab;
 
-    [Tooltip("Override ghost visual. Leave null to auto-build ghos from toolPrefab")]
+    [Tooltip("Override ghost visual. Leave null to auto-build ghost from toolPrefab")]
     public GameObject ghostPrefabOverride;
 
     [Header("Placement Rules")]
