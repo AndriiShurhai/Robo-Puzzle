@@ -95,7 +95,7 @@ public class Magnet : MonoBehaviour, ISwitchableTool
     [SerializeField] private float pullRange = 5f;
     [SerializeField] private Vector3 beamHalfExtents = new Vector3(0.5f, 0.5f, 0.1f);
 
-    public float HoldingDistance => HoldingDistance;
+    public float HoldingDistance => holdingDistance;
     public float PullRange => pullRange;
     public Vector3 BeamHalfExtents => beamHalfExtents;
 
