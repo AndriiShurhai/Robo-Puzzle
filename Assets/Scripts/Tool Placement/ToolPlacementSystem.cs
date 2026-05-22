@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System;
 
 
-public class ToolPlacementSystem : MonoBehaviour
+public class ToolPlacementSystem : MonoBehaviour, IGameSystem
 {
     public static ToolPlacementSystem Instance { get; private set; }
 
@@ -23,6 +23,9 @@ public class ToolPlacementSystem : MonoBehaviour
     private PlacementContext _lastContext;
     private bool _isPlacing;
     private bool _lastWasValid;
+    private bool _isPlacementEnabled = false;
+
+    private IGameEvents _gameEvents;
 
     private readonly HashSet<Vector3Int> _occupiedCells = new HashSet<Vector3Int>();
 
@@ -38,20 +41,51 @@ public class ToolPlacementSystem : MonoBehaviour
         ghost.Hide();
     }
 
-    private void Update()
+    public void Initialize(IGameEvents gameEvents)
     {
-        if (!_isPlacing) return;
-        UpdateGhost();
+        this._gameEvents = gameEvents;
+        gameEvents.OnExploreEntered += OnExplore;
+        gameEvents.OnPlanEntered += OnPlan;
+        gameEvents.OnExecuteEntered += OnExecute;
     }
 
     private void OnDestroy()
     {
         if (Instance == this) Instance = null;
+        
+        _gameEvents.OnExploreEntered -= OnExplore;
+        _gameEvents.OnPlanEntered -= OnPlan;
+        _gameEvents.OnExecuteEntered -= OnExecute;
     }
     
+
+    private void OnExplore()
+    {
+        StopPlacement();
+        _isPlacementEnabled = false;
+        _occupiedCells.Clear(); 
+    }
+
+    private void OnPlan()
+    {
+        _occupiedCells.Clear();
+        _isPlacementEnabled = true;
+    }
+
+    private void OnExecute()
+    {
+        StopPlacement();
+        _isPlacementEnabled = false;
+    }
+
+    private void Update()
+    {
+        if (!_isPlacing || !_isPlacementEnabled) return;
+        UpdateGhost();
+    }
     public void BeginPlacement(ToolDefinition tool)
     {
-        if (tool == null) return;
+        if (tool == null || !_isPlacementEnabled) return;
 
         _activeTool = tool;
         _isPlacing = true;

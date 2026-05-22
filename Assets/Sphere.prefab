@@ -125,6 +125,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3cc1ea4447a89d3478a408a2dde77089, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Magnet
-  holdingDistance: 1
+  holdingDistance: 2
   pullRange: 26.55
   beamHalfExtents: {x: 1.13, y: 2.24, z: 0.1}

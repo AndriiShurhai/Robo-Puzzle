@@ -247,7 +247,7 @@ public class BeingPulledState : IState
     public void Exit() { }
 }
 
-public class Robot : MonoBehaviour, IPullableObject
+public class Robot : MonoBehaviour, IPullableObject, IGameSystem
 {
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 3f;
@@ -269,8 +269,10 @@ public class Robot : MonoBehaviour, IPullableObject
     public float AlignSpeed => alignSpeed;
     public float PulledMoveSpeed => pulledMoveSpeed;
 
+    private IGameEvents _gameEvents;
     private IState _currentState;
     private Vector3 _pullDestination;
+    private Vector3 _spawnPosition;
 
     private void Awake()
     {
@@ -278,6 +280,40 @@ public class Robot : MonoBehaviour, IPullableObject
     }
     void Start()
     {
+        _spawnPosition = transform.position;
+    }
+
+    public void Initialize(IGameEvents gameEvents)
+    {
+        _gameEvents = gameEvents;
+
+        _gameEvents.OnExploreEntered += OnExplore;
+        _gameEvents.OnPlanEntered += OnPlan;
+        _gameEvents.OnExecuteEntered += OnExecute;
+    }
+
+    private void OnDestroy()
+    {
+        _gameEvents.OnExploreEntered -= OnExplore;
+        _gameEvents.OnPlanEntered -= OnPlan;
+        _gameEvents.OnExecuteEntered -= OnExecute;
+    }
+
+    private void OnExplore()
+    {
+        transform.position = _spawnPosition;
+        ChangeState(new IdleState(this));
+    }
+
+    private void OnPlan()
+    {
+        transform.position = _spawnPosition;
+        ChangeState(new IdleState(this));
+    }
+
+    private void OnExecute()
+    {
+        ChangeState(new MoveState(this));
     }
 
     void FixedUpdate()

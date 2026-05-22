@@ -71,6 +71,12 @@ public class CountdownTimer
         _currentTime = 0f;
     }
 
+    public void Reset()
+    {
+        _currentTime = _initialTime;
+        State = TimerState.Stopped;
+    }
+    
     public void AddTime(float amount)
     {
         _currentTime = Mathf.Max(0f, _currentTime + amount);

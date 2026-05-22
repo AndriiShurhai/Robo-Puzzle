@@ -3,7 +3,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.Events;
 
-public class TimerController : MonoBehaviour
+public class TimerController : MonoBehaviour, IGameSystem
 {
     [Header("Configuration")]
     [SerializeField] private float initialTimeInSeconds = 60f;
@@ -15,6 +15,8 @@ public class TimerController : MonoBehaviour
 
     private CountdownTimer _timer;
 
+    private IGameEvents _gameEvents;
+
     private void Awake()
     {
         _timer = new CountdownTimer(initialTimeInSeconds);
@@ -23,9 +25,23 @@ public class TimerController : MonoBehaviour
         _timer.OnCompleted += HandleTimerEnd;
     }
 
+    public void Initialize(IGameEvents gameEvents)
+    {
+        _gameEvents = gameEvents;
+        _gameEvents.OnExploreEntered += ResetTimer;
+        _gameEvents.OnPlanEntered += ResetTimer;
+        _gameEvents.OnExecuteEntered += RunTimer;
+    }
+
     public void RunTimer()
     {
         _timer.Play();
+    }
+
+    public void ResetTimer()
+    {
+        _timer.Reset();
+        UpdateUI(initialTimeInSeconds);
     }
 
     private void Update()

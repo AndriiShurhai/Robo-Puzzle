@@ -16,9 +16,7 @@ using UnityEngine;
 /// </summary>
 /// 
 
-[RequireComponent(typeof(Camera))]
-
-public class CameraController : MonoBehaviour
+public class CameraController : MonoBehaviour, IGameSystem
 {
     public enum CameraMode { Free, Follow }
 
@@ -64,13 +62,29 @@ public class CameraController : MonoBehaviour
 
     private Camera _cam;
 
+    private IGameEvents _gameEvents;
+
     private void Awake()
     {
-        _cam = GetComponent<Camera>();
+        _cam = Camera.main;
         SyncInternalStateFromTransform();
         _currentMode = startingMode;
     }
 
+    public void Initialize(IGameEvents gameEvents)
+    {
+        _gameEvents = gameEvents;
+        _gameEvents.OnExploreEntered += OnExplore;
+        _gameEvents.OnPlanEntered += OnPlan;
+        _gameEvents.OnExecuteEntered += OnExecute;
+    }
+
+    private void OnDestroy()
+    {
+        _gameEvents.OnExploreEntered -= OnExplore;
+        _gameEvents.OnPlanEntered -= OnPlan;
+        _gameEvents.OnExecuteEntered -= OnExecute;
+    }
     private void Update()
     {
         if (_currentMode == CameraMode.Free)
@@ -85,6 +99,21 @@ public class CameraController : MonoBehaviour
         {
             ApplyIsometricFollow();
         }
+    }
+
+    private void OnExplore()
+    {
+        SetMode(CameraMode.Free);
+    }
+
+    private void OnPlan()
+    {
+        SetMode(CameraMode.Free);
+    }
+
+    private void OnExecute()
+    {
+        SetMode(CameraMode.Follow);
     }
 
     private void HandlePan()
