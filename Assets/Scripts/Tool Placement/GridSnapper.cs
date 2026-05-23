@@ -55,10 +55,17 @@ public static class GridSnapper
 
     public static Quaternion SurfaceRotation(Vector3 normal)
     {
-        Vector3 upRef = Mathf.Abs(Vector3.Dot(normal.normalized, Vector3.up)) > 0.99f
-            ? Vector3.forward
-            : Vector3.up;
-
-        return Quaternion.LookRotation(normal, upRef);
+        SurfaceType surface = ClassifySurface(normal);
+        if (surface == SurfaceType.Floor || surface == SurfaceType.Ceiling)
+        {
+            // Normal becomes the object's UP — it lies flat on the surface.
+            // Z points world forward as a sensible default (player rotates from here).
+            return Quaternion.LookRotation(Vector3.forward, normal);
+        }
+        else
+        {
+            // Normal becomes the object's FORWARD — it faces outward from the wall.
+            return Quaternion.LookRotation(normal, Vector3.up);
+        }
     }
 }

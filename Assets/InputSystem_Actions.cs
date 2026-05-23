@@ -1293,6 +1293,34 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
                     ""isPartOfComposite"": false
                 }
             ]
+        },
+        {
+            ""name"": ""Tools"",
+            ""id"": ""0d54d160-1177-4afb-9066-ca842fe9839a"",
+            ""actions"": [
+                {
+                    ""name"": ""Rotate"",
+                    ""type"": ""Button"",
+                    ""id"": ""eb4da461-adb9-4292-ab25-3504fa2c2a47"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                }
+            ],
+            ""bindings"": [
+                {
+                    ""name"": """",
+                    ""id"": ""0ff70ecf-2935-4c74-bfbf-8b105b2eb764"",
+                    ""path"": ""<Keyboard>/r"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Rotate"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                }
+            ]
         }
     ],
     ""controlSchemes"": [
@@ -1389,6 +1417,9 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         m_Camera_DragHold = m_Camera.FindAction("DragHold", throwIfNotFound: true);
         m_Camera_MouseDelta = m_Camera.FindAction("MouseDelta", throwIfNotFound: true);
         m_Camera_MousePosition = m_Camera.FindAction("MousePosition", throwIfNotFound: true);
+        // Tools
+        m_Tools = asset.FindActionMap("Tools", throwIfNotFound: true);
+        m_Tools_Rotate = m_Tools.FindAction("Rotate", throwIfNotFound: true);
     }
 
     ~@InputSystem_Actions()
@@ -1396,6 +1427,7 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         UnityEngine.Debug.Assert(!m_Player.enabled, "This will cause a leak and performance issues, InputSystem_Actions.Player.Disable() has not been called.");
         UnityEngine.Debug.Assert(!m_UI.enabled, "This will cause a leak and performance issues, InputSystem_Actions.UI.Disable() has not been called.");
         UnityEngine.Debug.Assert(!m_Camera.enabled, "This will cause a leak and performance issues, InputSystem_Actions.Camera.Disable() has not been called.");
+        UnityEngine.Debug.Assert(!m_Tools.enabled, "This will cause a leak and performance issues, InputSystem_Actions.Tools.Disable() has not been called.");
     }
 
     /// <summary>
@@ -1997,6 +2029,102 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
     /// Provides a new <see cref="CameraActions" /> instance referencing this action map.
     /// </summary>
     public CameraActions @Camera => new CameraActions(this);
+
+    // Tools
+    private readonly InputActionMap m_Tools;
+    private List<IToolsActions> m_ToolsActionsCallbackInterfaces = new List<IToolsActions>();
+    private readonly InputAction m_Tools_Rotate;
+    /// <summary>
+    /// Provides access to input actions defined in input action map "Tools".
+    /// </summary>
+    public struct ToolsActions
+    {
+        private @InputSystem_Actions m_Wrapper;
+
+        /// <summary>
+        /// Construct a new instance of the input action map wrapper class.
+        /// </summary>
+        public ToolsActions(@InputSystem_Actions wrapper) { m_Wrapper = wrapper; }
+        /// <summary>
+        /// Provides access to the underlying input action "Tools/Rotate".
+        /// </summary>
+        public InputAction @Rotate => m_Wrapper.m_Tools_Rotate;
+        /// <summary>
+        /// Provides access to the underlying input action map instance.
+        /// </summary>
+        public InputActionMap Get() { return m_Wrapper.m_Tools; }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Enable()" />
+        public void Enable() { Get().Enable(); }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.Disable()" />
+        public void Disable() { Get().Disable(); }
+        /// <inheritdoc cref="UnityEngine.InputSystem.InputActionMap.enabled" />
+        public bool enabled => Get().enabled;
+        /// <summary>
+        /// Implicitly converts an <see ref="ToolsActions" /> to an <see ref="InputActionMap" /> instance.
+        /// </summary>
+        public static implicit operator InputActionMap(ToolsActions set) { return set.Get(); }
+        /// <summary>
+        /// Adds <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
+        /// </summary>
+        /// <param name="instance">Callback instance.</param>
+        /// <remarks>
+        /// If <paramref name="instance" /> is <c>null</c> or <paramref name="instance"/> have already been added this method does nothing.
+        /// </remarks>
+        /// <seealso cref="ToolsActions" />
+        public void AddCallbacks(IToolsActions instance)
+        {
+            if (instance == null || m_Wrapper.m_ToolsActionsCallbackInterfaces.Contains(instance)) return;
+            m_Wrapper.m_ToolsActionsCallbackInterfaces.Add(instance);
+            @Rotate.started += instance.OnRotate;
+            @Rotate.performed += instance.OnRotate;
+            @Rotate.canceled += instance.OnRotate;
+        }
+
+        /// <summary>
+        /// Removes <see cref="InputAction.started"/>, <see cref="InputAction.performed"/> and <see cref="InputAction.canceled"/> callbacks provided via <param cref="instance" /> on all input actions contained in this map.
+        /// </summary>
+        /// <remarks>
+        /// Calling this method when <paramref name="instance" /> have not previously been registered has no side-effects.
+        /// </remarks>
+        /// <seealso cref="ToolsActions" />
+        private void UnregisterCallbacks(IToolsActions instance)
+        {
+            @Rotate.started -= instance.OnRotate;
+            @Rotate.performed -= instance.OnRotate;
+            @Rotate.canceled -= instance.OnRotate;
+        }
+
+        /// <summary>
+        /// Unregisters <param cref="instance" /> and unregisters all input action callbacks via <see cref="ToolsActions.UnregisterCallbacks(IToolsActions)" />.
+        /// </summary>
+        /// <seealso cref="ToolsActions.UnregisterCallbacks(IToolsActions)" />
+        public void RemoveCallbacks(IToolsActions instance)
+        {
+            if (m_Wrapper.m_ToolsActionsCallbackInterfaces.Remove(instance))
+                UnregisterCallbacks(instance);
+        }
+
+        /// <summary>
+        /// Replaces all existing callback instances and previously registered input action callbacks associated with them with callbacks provided via <param cref="instance" />.
+        /// </summary>
+        /// <remarks>
+        /// If <paramref name="instance" /> is <c>null</c>, calling this method will only unregister all existing callbacks but not register any new callbacks.
+        /// </remarks>
+        /// <seealso cref="ToolsActions.AddCallbacks(IToolsActions)" />
+        /// <seealso cref="ToolsActions.RemoveCallbacks(IToolsActions)" />
+        /// <seealso cref="ToolsActions.UnregisterCallbacks(IToolsActions)" />
+        public void SetCallbacks(IToolsActions instance)
+        {
+            foreach (var item in m_Wrapper.m_ToolsActionsCallbackInterfaces)
+                UnregisterCallbacks(item);
+            m_Wrapper.m_ToolsActionsCallbackInterfaces.Clear();
+            AddCallbacks(instance);
+        }
+    }
+    /// <summary>
+    /// Provides a new <see cref="ToolsActions" /> instance referencing this action map.
+    /// </summary>
+    public ToolsActions @Tools => new ToolsActions(this);
     private int m_KeyboardMouseSchemeIndex = -1;
     /// <summary>
     /// Provides access to the input control scheme.
@@ -2260,5 +2388,20 @@ public partial class @InputSystem_Actions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnMousePosition(InputAction.CallbackContext context);
+    }
+    /// <summary>
+    /// Interface to implement callback methods for all input action callbacks associated with input actions defined by "Tools" which allows adding and removing callbacks.
+    /// </summary>
+    /// <seealso cref="ToolsActions.AddCallbacks(IToolsActions)" />
+    /// <seealso cref="ToolsActions.RemoveCallbacks(IToolsActions)" />
+    public interface IToolsActions
+    {
+        /// <summary>
+        /// Method invoked when associated input action "Rotate" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnRotate(InputAction.CallbackContext context);
     }
 }

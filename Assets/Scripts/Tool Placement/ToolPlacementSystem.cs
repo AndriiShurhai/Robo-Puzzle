@@ -24,6 +24,7 @@ public class ToolPlacementSystem : MonoBehaviour, IGameSystem
     private bool _isPlacing;
     private bool _lastWasValid;
     private bool _isPlacementEnabled = false;
+    private float _placementRotation;
 
     private IGameEvents _gameEvents;
 
@@ -40,6 +41,7 @@ public class ToolPlacementSystem : MonoBehaviour, IGameSystem
         Instance = this;
         ghost.Hide();
     }
+
 
     public void Initialize(IGameEvents gameEvents)
     {
@@ -87,6 +89,7 @@ public class ToolPlacementSystem : MonoBehaviour, IGameSystem
     {
         if (tool == null || !_isPlacementEnabled) return;
 
+        _placementRotation = 0f;
         _activeTool = tool;
         _isPlacing = true;
         _lastWasValid = false;
@@ -113,6 +116,16 @@ public class ToolPlacementSystem : MonoBehaviour, IGameSystem
     {
         foreach (Vector3Int c in cells) _occupiedCells.Remove(c);
     }
+
+    private void HandlePlacementRotation()
+    {
+        if (!GameInput.Instance.RotateButtonPressed) return;
+
+        _placementRotation += 90f;
+
+        if (_placementRotation >= 360f) _placementRotation -= 360f;
+    }
+
     private void UpdateGhost()
     {
         Ray ray = gameCamera.ScreenPointToRay(GameInput.Instance.MousePosition);
@@ -123,9 +136,11 @@ public class ToolPlacementSystem : MonoBehaviour, IGameSystem
             return;
         }
 
+        HandlePlacementRotation();
+
         Vector3Int cell = GridSnapper.WorldToCell(hit.point, hit.normal);
         Vector3 pos = GridSnapper.CellCenter(cell);
-        Quaternion rot = GridSnapper.SurfaceRotation(hit.normal);
+        Quaternion rot = GridSnapper.SurfaceRotation(hit.normal) * Quaternion.Euler(0f, _placementRotation, 0f);
         SurfaceType surface = GridSnapper.ClassifySurface(hit.normal);
 
         _lastContext = new PlacementContext(cell, pos, rot, hit.normal, surface, hit);
@@ -138,6 +153,9 @@ public class ToolPlacementSystem : MonoBehaviour, IGameSystem
     }
     private void CommitPlacement()
     {
+        Quaternion finalRot = _lastContext.SnappedRotation
+                        * Quaternion.Euler(0f, _placementRotation, 0f);
+
         GameObject placed = Instantiate(
             _activeTool.toolPrefab,
             _lastContext.SnappedPosition,

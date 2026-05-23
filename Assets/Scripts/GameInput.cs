@@ -19,6 +19,7 @@ public class GameInput : MonoBehaviour
     [SerializeField] private InputActionAsset inputActions;
 
     private InputActionMap _cameraMap;
+    private InputActionMap _toolsMap;
 
     private InputAction _pan;
     private InputAction _zoom;
@@ -27,6 +28,8 @@ public class GameInput : MonoBehaviour
     private InputAction _mouseDelta;
     private InputAction _mousePosition;
 
+
+    private InputAction _rotateButton;
 
     private void Awake()
     {
@@ -47,14 +50,20 @@ public class GameInput : MonoBehaviour
         BindActions();
     }
 
+    private void Start()
+    {
+    }
+
     private void OnEnable()
     {
         _cameraMap?.Enable();
+        _toolsMap?.Enable();
     }
 
     private void OnDisable()
     {
         _cameraMap?.Disable();
+        _toolsMap?.Disable();
     }
 
     private void OnDestroy()
@@ -65,6 +74,7 @@ public class GameInput : MonoBehaviour
     private void BindActions()
     {
         _cameraMap = inputActions.FindActionMap("Camera", throwIfNotFound: true);
+        _toolsMap = inputActions.FindActionMap("Tools", throwIfNotFound: true);
 
         _pan = _cameraMap.FindAction("Pan", throwIfNotFound: true);
         _zoom = _cameraMap.FindAction("Zoom", throwIfNotFound: true);
@@ -72,6 +82,8 @@ public class GameInput : MonoBehaviour
         _dragHeld = _cameraMap.FindAction("DragHold", throwIfNotFound: true);
         _mouseDelta = _cameraMap.FindAction("MouseDelta", throwIfNotFound: true);
         _mousePosition = _cameraMap.FindAction("MousePosition", throwIfNotFound: true);
+
+        _rotateButton = _toolsMap.FindAction("Rotate", throwIfNotFound: true);
     }
 
     // WASD / Arrow key pan input. Range [-1, 1] on each axis.
@@ -91,8 +103,9 @@ public class GameInput : MonoBehaviour
 
     // Mouse cursor position in screen space (pixels, origin bottom-left). Note that this is not necessarily the same as the mouse position used by the Camera's ScreenToWorldPoint() if the camera is moving or rotating while the mouse is stationary.
     public Vector2 MousePosition => _mousePosition.ReadValue<Vector2>();
-
     
+    public bool RotateButtonPressed => _rotateButton.triggered;
+
     public void SetCameraInputActive(bool active)
     {
         if (active) _cameraMap.Enable();

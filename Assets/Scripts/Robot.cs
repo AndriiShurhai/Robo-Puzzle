@@ -247,7 +247,7 @@ public class BeingPulledState : IState
     public void Exit() { }
 }
 
-public class Robot : MonoBehaviour, IPullableObject, IGameSystem
+public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
 {
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 3f;
@@ -273,6 +273,7 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem
     private IState _currentState;
     private Vector3 _pullDestination;
     private Vector3 _spawnPosition;
+    private Coroutine _alignCoroutine;
 
     private void Awake()
     {
@@ -327,6 +328,65 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem
         _currentState?.Exit();
         _currentState = newState;
         _currentState.Enter();
+    }
+
+    public void SetDirection(Vector3 direction, Transform platform)
+    {
+        if (!(_currentState is MoveState)) return;
+
+        Vector3 pos = platform.position;
+        Vector3 snappedCell = GridSnapper.CellCenter(new Vector3Int(
+            Mathf.FloorToInt(pos.x),
+            Mathf.FloorToInt(pos.y),
+            Mathf.FloorToInt(pos.z)));
+
+        Vector3 targetPosition = new Vector3(snappedCell.x, transform.position.y, snappedCell.z);
+
+        Quaternion targetRotation = Quaternion.LookRotation(SnapToCardinal(direction), Vector3.up);
+
+        if (_alignCoroutine != null)
+        {
+            StopCoroutine(_alignCoroutine);
+        }
+
+        _alignCoroutine = StartCoroutine(SmoothAlignRoutine(targetPosition, targetRotation));
+    }
+
+    private IEnumerator SmoothAlignRoutine(Vector3 targetPos, Quaternion targetRot)
+    {
+        float elapsed = 0f;
+        float duration = 0.15f; 
+
+        Vector3 startPos = transform.position;
+        Quaternion startRot = transform.rotation;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+
+            float t = elapsed / duration;
+            float easeT = 1f - Mathf.Pow(1f - t, 3f);
+
+            transform.position = Vector3.Lerp(startPos, targetPos, easeT);
+            transform.rotation = Quaternion.Slerp(startRot, targetRot, easeT);
+
+            yield return null;
+        }
+
+        transform.position = targetPos;
+        transform.rotation = targetRot;
+        _alignCoroutine = null;
+
+        ChangeState(new MoveState(this));
+    }
+
+    private static Vector3 SnapToCardinal(Vector3 dir)
+    {
+        dir.y = 0f;
+        dir.Normalize();
+        return Mathf.Abs(dir.x) > Mathf.Abs(dir.z)
+            ? new Vector3(Mathf.Sign(dir.x), 0f, 0f)
+            : new Vector3(0f, 0f, Mathf.Sign(dir.z));
     }
 
     public void PullTowardsTarget(Vector3 target)
