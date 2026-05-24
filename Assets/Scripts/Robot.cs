@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem.XR;
+using UnityEngine.UIElements;
 
 
 
@@ -13,7 +14,18 @@ public class IdleState: IState
         this._controller = controller;
     }
 
-    public void Enter() { }
+    public void Enter() 
+    {
+        Vector3 pos = _controller.transform.position;
+        Vector3 snappedCell = (new Vector3Int(
+            Mathf.FloorToInt(pos.x),
+            Mathf.FloorToInt(pos.y),
+            Mathf.FloorToInt(pos.z)));
+
+        Vector3 targetPosition = new Vector3(snappedCell.x, _controller.transform.position.y, snappedCell.z);
+
+        _controller.transform.position = targetPosition;
+    }
 
     public void Update() { }
 
@@ -335,7 +347,12 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
         if (!(_currentState is MoveState)) return;
 
         Vector3 pos = platform.position;
-        Vector3 snappedCell = GridSnapper.CellCenter(new Vector3Int(
+        //Vector3 snappedCell = GridSnapper.CellCenter(new Vector3Int(
+        //    Mathf.FloorToInt(pos.x),
+        //    Mathf.FloorToInt(pos.y),
+        //    Mathf.FloorToInt(pos.z)));
+
+        Vector3 snappedCell = (new Vector3Int(
             Mathf.FloorToInt(pos.x),
             Mathf.FloorToInt(pos.y),
             Mathf.FloorToInt(pos.z)));
@@ -343,6 +360,8 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
         Vector3 targetPosition = new Vector3(snappedCell.x, transform.position.y, snappedCell.z);
 
         Quaternion targetRotation = Quaternion.LookRotation(SnapToCardinal(direction), Vector3.up);
+
+        ChangeState(new IdleState(this));
 
         if (_alignCoroutine != null)
         {
@@ -420,6 +439,28 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
         }
         _pullDestination = Vector3.zero;
         ChangeState(new MoveState(this));
+    }
+
+    public bool TryStop()
+    {
+        if (!(_currentState is MoveState))
+        {
+            Debug.Log("Current state is not MoveState, ignoring stop command");
+            return false;
+        }
+        ChangeState(new IdleState(this));
+        return true;
+    }
+
+    public bool TryMove()
+    {
+        if (!(_currentState is IdleState))
+        {
+            Debug.Log("Current state is not IdleState, ignoring move command");
+            return false;
+        }
+        ChangeState(new MoveState(this));
+        return true;
     }
 
     public void ChangeToPullingState(IPullableObject controller, Vector3 finalDestination, float remaining)
