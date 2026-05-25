@@ -285,6 +285,7 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
     private IState _currentState;
     private Vector3 _pullDestination;
     private Vector3 _spawnPosition;
+    private Vector3 _spawnRotation;
     private Coroutine _alignCoroutine;
 
     private void Awake()
@@ -294,6 +295,7 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
     void Start()
     {
         _spawnPosition = transform.position;
+        _spawnRotation = transform.eulerAngles;
     }
 
     public void Initialize(IGameEvents gameEvents)
@@ -315,12 +317,14 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
     private void OnExplore()
     {
         transform.position = _spawnPosition;
+        transform.eulerAngles = _spawnRotation;
         ChangeState(new IdleState(this));
     }
 
     private void OnPlan()
     {
         transform.position = _spawnPosition;
+        transform.eulerAngles = _spawnRotation;
         ChangeState(new IdleState(this));
     }
 

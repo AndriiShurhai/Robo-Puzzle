@@ -14,6 +14,9 @@ public class GameManager : MonoBehaviour, IGameEvents
 {
     public static GameManager Instance { get; private set; }
 
+    public event Action OnLevelComplete;
+    public event Action OnLevelFailed;
+
     public event Action OnExploreEntered;
     public event Action OnPlanEntered;
     public event Action OnExecuteEntered;
@@ -52,8 +55,8 @@ public class GameManager : MonoBehaviour, IGameEvents
 
     private void Start()
     {
-        finishTrigger.OnLevelComplete += OnLevelComplete;
-        timerController.onTimerEnd += OnLevelFailed;
+        finishTrigger.OnLevelComplete += CompleteLevel;
+        timerController.onTimerEnd += FailLevel;
 
         foreach (var system in gameSystems)
         {
@@ -68,18 +71,22 @@ public class GameManager : MonoBehaviour, IGameEvents
 
     private void OnDestroy()
     {
-        finishTrigger.OnLevelComplete -= OnLevelComplete;
-        timerController.onTimerEnd -= OnLevelFailed;
+        finishTrigger.OnLevelComplete -= CompleteLevel;
+        timerController.onTimerEnd -= FailLevel;
     }
 
-    private void OnLevelComplete()
+    public void CompleteLevel()
     {
         Debug.Log("Level completed");
+        ChangeState(GameState.Exploring);
+        OnLevelComplete?.Invoke();
     }
 
-    private void OnLevelFailed()
+    public void FailLevel()
     {
         Debug.Log("Level failed");
+        ChangeState(GameState.Exploring);
+        OnLevelFailed?.Invoke();
     }
 
     private void ChangeState(GameState newState)
@@ -96,8 +103,14 @@ public class GameManager : MonoBehaviour, IGameEvents
                 break;
 
             case GameState.Executing:
+                OnExecute();
                 OnExecuteEntered?.Invoke();
                 break;
         }
+    }
+
+    private void OnExecute()
+    {
+        timerController.RunTimer();
     }
 }
