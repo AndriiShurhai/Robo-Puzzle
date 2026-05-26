@@ -6,20 +6,20 @@ using UnityEngine.UI;
 
 public class MagnetNotActiveState : IState
 {
-    private Magnet controller;
+    private Magnet _controller;
 
     public MagnetNotActiveState(Magnet controller)
     {
-        this.controller = controller;
+        _controller = controller;
     }
 
     public void Enter() 
     {
-        Vector3 origin = controller.transform.position + (Vector3.up * 0.5f);
-        int layerMask = LayerMask.GetMask("Magnetic Objects");
+        Vector3 origin = _controller.transform.position + (Vector3.up * 0.5f);
+        int layerMask = _controller.MageticObjectsLayerMask;
 
-        Debug.DrawRay(origin, controller.transform.forward * controller.PullRange, Color.red);
-        RaycastHit[] hits = Physics.BoxCastAll(origin, controller.BeamHalfExtents, controller.transform.forward, controller.transform.rotation, controller.PullRange, layerMask);
+        Debug.DrawRay(origin, _controller.transform.forward * _controller.PullRange, Color.red);
+        RaycastHit[] hits = Physics.BoxCastAll(origin, _controller.BeamHalfExtents, _controller.transform.forward, _controller.transform.rotation, _controller.PullRange, layerMask);
 
         foreach (RaycastHit hit in hits)
         {
@@ -54,7 +54,7 @@ public class MagnetActiveState : IState
     public void Update()
     {
         Vector3 origin = _controller.transform.position + (Vector3.up * 0.5f);
-        int layerMask = LayerMask.GetMask("Magnetic Objects");
+        int layerMask = _controller.MageticObjectsLayerMask;
 
         Debug.DrawRay(origin, _controller.transform.forward * _controller.PullRange, Color.red);
         RaycastHit[] hits = Physics.BoxCastAll(origin, _controller.BeamHalfExtents, _controller.transform.forward, _controller.transform.rotation, _controller.PullRange, layerMask);
@@ -101,8 +101,13 @@ public class Magnet : MonoBehaviour, ISwitchableTool
 
     private IState currentState;
 
+    private int _mageticObjectsLayerMask;
+
+    public int MageticObjectsLayerMask => _mageticObjectsLayerMask;
+
     private void Start()
     {
+        _mageticObjectsLayerMask = LayerMask.GetMask("Magnetic Objects");
         ChangeState(new MagnetNotActiveState(this));
     }
 

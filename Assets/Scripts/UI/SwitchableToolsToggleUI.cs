@@ -8,8 +8,6 @@ public class SwitchableToolsToggleUI : MonoBehaviour, IGameSystem
     [SerializeField] private GameObject toggleContainer;
     [SerializeField] private GameObject togglePrefab;
 
-    private List<string> existingToggles = new List<string>();
-
     private IGameEvents _gameEvents;
 
     private void Start()
@@ -40,7 +38,7 @@ public class SwitchableToolsToggleUI : MonoBehaviour, IGameSystem
         {
             ToolPlacementSystem.Instance.OnToolPlaced -= OnToolPlaced;
         }
-
+        if (_gameEvents == null) return;
         _gameEvents.OnExploreEntered -= OnExplore;
         _gameEvents.OnPlanEntered -= OnPlan;
         _gameEvents.OnExecuteEntered -= OnExecute;
@@ -54,7 +52,7 @@ public class SwitchableToolsToggleUI : MonoBehaviour, IGameSystem
 
     private void OnPlan()
     {
-        HideToggles();
+        ClearToggles();
     }
 
     private void OnExecute()
@@ -67,7 +65,6 @@ public class SwitchableToolsToggleUI : MonoBehaviour, IGameSystem
         {
             Destroy(child.gameObject);
         }
-        existingToggles.Clear();
     }
 
     private void HideToggles()
@@ -79,17 +76,11 @@ public class SwitchableToolsToggleUI : MonoBehaviour, IGameSystem
     }
     private void OnToolPlaced(ToolDefinition tool, GameObject toolInstance)
     {
-        Debug.Log($"[SwitchableToolsToggleUI] Tool placed: {tool.displayName}");
-
 
         ISwitchableTool switchTool = toolInstance.GetComponent<ISwitchableTool>();
 
         if (switchTool != null)
         {
-            Debug.Log("[SwitchableToolsToggleUI] Tool is switchable, creating toggle.");
-
-            existingToggles.Add(tool.displayName);
-
             GameObject toggleObj = Instantiate(togglePrefab, toggleContainer.transform);
             toggleObj.name = tool.displayName;
 
@@ -108,7 +99,6 @@ public class SwitchableToolsToggleUI : MonoBehaviour, IGameSystem
 
             else
             {
-                Debug.LogWarning($"[SwitchableToolsToggleUI] The prefab {togglePrefab.name} is missing a Button component.");
             }
         }
     }

@@ -54,7 +54,8 @@ public class ToolPlacementSystem : MonoBehaviour, IGameSystem
     private void OnDestroy()
     {
         if (Instance == this) Instance = null;
-        
+        if (_gameEvents == null) return;
+
         _gameEvents.OnExploreEntered -= OnExplore;
         _gameEvents.OnPlanEntered -= OnPlan;
         _gameEvents.OnExecuteEntered -= OnExecute;
@@ -153,8 +154,6 @@ public class ToolPlacementSystem : MonoBehaviour, IGameSystem
     }
     private void CommitPlacement()
     {
-        Quaternion finalRot = _lastContext.SnappedRotation
-                        * Quaternion.Euler(0f, _placementRotation, 0f);
 
         GameObject placed = Instantiate(
             _activeTool.toolPrefab,

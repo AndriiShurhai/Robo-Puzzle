@@ -26,6 +26,10 @@ public class ToolsManager : MonoBehaviour, IGameSystem
     private void OnDestroy()
     {
         if (ToolPlacementSystem.Instance != null) ToolPlacementSystem.Instance.OnToolPlaced -= OnToolPlaced;
+        if (_gameEvents == null) return;
+        _gameEvents.OnExploreEntered -= OnExplore;
+        _gameEvents.OnPlanEntered -= OnPlan;
+        _gameEvents.OnExecuteEntered -= OnExecute;
     }
 
     private void OnExplore()
@@ -53,7 +57,6 @@ public class ToolsManager : MonoBehaviour, IGameSystem
 
     private void OnToolPlaced(ToolDefinition toolDef, GameObject toolInstance)
     {
-        if (_tools == null) _tools = new List<GameObject>();
         _tools.Add(toolInstance);
     }
 }

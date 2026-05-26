@@ -74,5 +74,9 @@ public class TimerController : MonoBehaviour, IGameSystem
             _timer.OnTicked -= UpdateUI;
             _timer.OnCompleted -= HandleTimerEnd;
         }
+        if (_gameEvents == null) return;
+        _gameEvents.OnExploreEntered -= ResetTimer;
+        _gameEvents.OnPlanEntered -= ResetTimer;
+        _gameEvents.OnExecuteEntered -= RunTimer;
     }
 }

@@ -1,9 +1,5 @@
 using UnityEngine;
 
-public interface IDirectable
-{
-    void SetDirection(Vector3 direction, Transform platform);
-}
 public class DirectionPlatform : MonoBehaviour, IRotateable
 {
     private bool hasLeft = true;
@@ -13,7 +9,7 @@ public class DirectionPlatform : MonoBehaviour, IRotateable
         if (!hasLeft) return;
         IDirectable dir = other.GetComponent<IDirectable>();
         dir?.SetDirection(transform.forward, transform);
-        hasLeft = true;
+        hasLeft = false;
     }
 
     private void OnTriggerExit(Collider other)

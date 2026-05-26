@@ -14,6 +14,7 @@ public class ToolSlotsContainerUI : MonoBehaviour, IGameSystem
 
     private void OnDestroy()
     {
+        if (_gameEvents == null) return;
         _gameEvents.OnExploreEntered -= OnExplore;
         _gameEvents.OnPlanEntered -= OnPlan;
         _gameEvents.OnExecuteEntered -= OnExecute;

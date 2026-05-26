@@ -17,6 +17,11 @@ public class GhostController : MonoBehaviour
     private Renderer[] _renderers;
     private MaterialPropertyBlock _propBlock;
 
+    private void Awake()
+    {
+        _propBlock = new MaterialPropertyBlock();
+    }
+
     public void Show(ToolDefinition tool)
     {
         Hide();
@@ -24,8 +29,6 @@ public class GhostController : MonoBehaviour
         _ghostInstance = Instantiate(tool.GetGhostPrefab(), transform);
 
         _renderers = _ghostInstance.GetComponentsInChildren<Renderer>(includeInactive: true);
-
-        _propBlock = new MaterialPropertyBlock();
 
         if (ghostMaterial != null)
         {

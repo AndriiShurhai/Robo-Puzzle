@@ -3,12 +3,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 
-public interface IGameEvents
-{
-    public event Action OnExploreEntered;
-    public event Action OnPlanEntered;
-    public event Action OnExecuteEntered;
-}
 
 public class GameManager : MonoBehaviour, IGameEvents
 {
@@ -46,7 +40,6 @@ public class GameManager : MonoBehaviour, IGameEvents
         
 
         currentState = GameState.Exploring;
-        OnExploreEntered?.Invoke();
 
         exploreStageButton.onClick.AddListener(() => ChangeState(GameState.Exploring));
         planStageButton.onClick.AddListener(() => ChangeState(GameState.Planning));
@@ -103,14 +96,8 @@ public class GameManager : MonoBehaviour, IGameEvents
                 break;
 
             case GameState.Executing:
-                OnExecute();
                 OnExecuteEntered?.Invoke();
                 break;
         }
-    }
-
-    private void OnExecute()
-    {
-        timerController.RunTimer();
     }
 }

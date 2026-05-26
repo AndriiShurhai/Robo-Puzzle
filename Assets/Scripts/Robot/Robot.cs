@@ -214,7 +214,7 @@ public class BeingPulledState : IState
         this._finalDestination = finalDestination;
         this._carryoverBudget = leftoverMovement;
         this._moveSpeed = moveSpeed;
-        this._cellSize = (int)cellSize;
+        this._cellSize = Mathf.RoundToInt(cellSize);
     }
 
     public void Enter()
@@ -285,8 +285,10 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
     private IState _currentState;
     private Vector3 _pullDestination;
     private Vector3 _spawnPosition;
-    private Vector3 _spawnRotation;
+    private Quaternion _spawnRotation;
     private Coroutine _alignCoroutine;
+
+    private static int _wallLayerMask;
 
     private void Awake()
     {
@@ -294,8 +296,9 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
     }
     void Start()
     {
+        _wallLayerMask = LayerMask.GetMask("Walls");
         _spawnPosition = transform.position;
-        _spawnRotation = transform.eulerAngles;
+        _spawnRotation = transform.rotation;
     }
 
     public void Initialize(IGameEvents gameEvents)
@@ -309,6 +312,7 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
 
     private void OnDestroy()
     {
+        if (_gameEvents == null) return;
         _gameEvents.OnExploreEntered -= OnExplore;
         _gameEvents.OnPlanEntered -= OnPlan;
         _gameEvents.OnExecuteEntered -= OnExecute;
@@ -317,14 +321,16 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
     private void OnExplore()
     {
         transform.position = _spawnPosition;
-        transform.eulerAngles = _spawnRotation;
+        transform.rotation = _spawnRotation;
+        _alignCoroutine = null;
         ChangeState(new IdleState(this));
     }
 
     private void OnPlan()
     {
         transform.position = _spawnPosition;
-        transform.eulerAngles = _spawnRotation;
+        transform.rotation = _spawnRotation;
+        _alignCoroutine = null;
         ChangeState(new IdleState(this));
     }
 
@@ -335,7 +341,6 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
 
     void FixedUpdate()
     {
-        Debug.Log("Current Robot State: " + _currentState.GetType().Name);
         _currentState?.Update();
     }
 
@@ -351,10 +356,6 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
         if (!(_currentState is MoveState)) return;
 
         Vector3 pos = platform.position;
-        //Vector3 snappedCell = GridSnapper.CellCenter(new Vector3Int(
-        //    Mathf.FloorToInt(pos.x),
-        //    Mathf.FloorToInt(pos.y),
-        //    Mathf.FloorToInt(pos.z)));
 
         Vector3 snappedCell = (new Vector3Int(
             Mathf.FloorToInt(pos.x),
@@ -474,12 +475,10 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
     public static bool IsPathBlocked(Transform t, float checkDistance)
     {
         RaycastHit hit;
-        int layerMask = LayerMask.GetMask("Walls");
-
 
         Vector3 rayOrigin = t.position + (Vector3.up * 0.5f);
 
-        if (Physics.Raycast(rayOrigin, t.forward, out hit, checkDistance, layerMask))
+        if (Physics.Raycast(rayOrigin, t.forward, out hit, checkDistance, _wallLayerMask))
         {
             if (hit.collider.CompareTag("Wall"))
             {
