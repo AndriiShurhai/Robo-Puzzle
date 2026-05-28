@@ -58,7 +58,7 @@ public class MagnetActiveState : IState
 
         Debug.DrawRay(origin, _controller.transform.forward * _controller.PullRange, Color.red);
         RaycastHit[] hits = Physics.BoxCastAll(origin, _controller.BeamHalfExtents, _controller.transform.forward, _controller.transform.rotation, _controller.PullRange, layerMask);
-        
+
         _newlyDetected.Clear();
         foreach (RaycastHit hit in hits)
         {
@@ -72,13 +72,23 @@ public class MagnetActiveState : IState
 
         _newlyDetected.Sort((a, b) => a.Distance.CompareTo(b.Distance));
 
-        Vector3Int basePosition = Vector3Int.RoundToInt(_controller.transform.position);
         for (int i = 0; i < _newlyDetected.Count; i++)
         {
-            float queueOffset = _controller.HoldingDistance + (i * 1f);
-            Vector3 destination = basePosition + (_controller.transform.forward * queueOffset);
+            float queueOffset = _controller.HoldingDistance + (i * 1f); // 1f represents cell spacing
+            Vector3 rawDestination = _controller.transform.position + (_controller.transform.forward * queueOffset);
 
-            _newlyDetected[i].Pullable.PullTowardsTarget(destination);
+            // FIX: Route the predicted queue position through GridSnapper
+            Vector3Int cellCoords = new Vector3Int(
+                Mathf.RoundToInt(rawDestination.x),
+                Mathf.RoundToInt(rawDestination.y),
+                Mathf.RoundToInt(rawDestination.z)
+            );
+            Vector3 snappedDestination = GridSnapper.CellCenter(cellCoords);
+
+            // Preserve consistent Y height
+            snappedDestination.y = _controller.transform.position.y;
+
+            _newlyDetected[i].Pullable.PullTowardsTarget(snappedDestination);
         }
     }
 

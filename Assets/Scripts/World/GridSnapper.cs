@@ -45,6 +45,13 @@ public static class GridSnapper
             cell.z + 0.5f);
     }
 
+    public static bool IsCellCenter(Vector3 cell)
+    {
+        return Mathf.Approximately(cell.x % 1.0f, 0.5f) &&
+               Mathf.Approximately(cell.y % 1.0f, 0.5f) &&
+               Mathf.Approximately(cell.z % 1.0f, 0.5f);
+    }
+
     public static SurfaceType ClassifySurface (Vector3 normal)
     {
         float dot = Vector3.Dot(normal.normalized, Vector3.up);

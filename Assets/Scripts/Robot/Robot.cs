@@ -17,10 +17,11 @@ public class IdleState: IState
     public void Enter() 
     {
         Vector3 pos = _controller.transform.position;
-        Vector3 snappedCell = (new Vector3Int(
-            Mathf.FloorToInt(pos.x),
-            Mathf.FloorToInt(pos.y),
-            Mathf.FloorToInt(pos.z)));
+
+        Vector3 snappedCell = GridSnapper.CellCenter(new Vector3Int(
+            Mathf.RoundToInt(pos.x),
+            Mathf.RoundToInt(pos.y),
+            Mathf.RoundToInt(pos.z)));
 
         Vector3 targetPosition = new Vector3(snappedCell.x, _controller.transform.position.y, snappedCell.z);
 
@@ -58,7 +59,7 @@ public class MoveState : IState
             float remaining = step - dist;
             _controller.transform.position = _targetPosition;
 
-            if (Robot.IsPathBlocked(_controller.transform, _controller.CellSize * 1.5f))
+            if (Robot.IsPathBlocked(_controller.transform, _controller.transform.forward, _controller.CellSize * 1.5f))
             {
                 _controller.ChangeState(new PushBackState(_controller));
                 return;
@@ -82,6 +83,13 @@ public class MoveState : IState
     private void SetNextTarget()
     {
         _targetPosition = _controller.transform.position + _controller.transform.forward * _controller.CellSize;
+
+        Vector3 snappedPosition = GridSnapper.CellCenter(new Vector3Int(
+            Mathf.RoundToInt(_targetPosition.x),
+            Mathf.RoundToInt(_targetPosition.y),
+            Mathf.RoundToInt(_targetPosition.z)));
+
+        _targetPosition = new Vector3(snappedPosition.x, _controller.transform.position.y, snappedPosition.z);
     }
 }
 
@@ -150,24 +158,31 @@ public class PullAlignState : IState
         Debug.Log("Enter pull align state");
         Vector3 currentPos = _controller.GetTransform().position;
 
+        // FIX: Grab the true snapped center of the current position first
+        Vector3Int currentCellPos = new Vector3Int(
+            Mathf.RoundToInt(currentPos.x),
+            Mathf.RoundToInt(currentPos.y),
+            Mathf.RoundToInt(currentPos.z)
+        );
+        Vector3 trueCenter = GridSnapper.CellCenter(currentCellPos);
+
         float distX = Mathf.Abs(_finalDestination.x - currentPos.x);
         float distZ = Mathf.Abs(_finalDestination.z - currentPos.z);
 
-        
         if (distX > distZ)
         {
             _alignTarget = new Vector3(
-                Mathf.Round(currentPos.x), // Stay in current X column (snapped to grid)
-                currentPos.y,              // Keep height
-                _finalDestination.z         // Align exactly with magnet's Z row
+                trueCenter.x,          // Use the true center X
+                currentPos.y,          // Keep height
+                _finalDestination.z    // Align exactly with magnet's Z row
             );
         }
-        else 
+        else
         {
             _alignTarget = new Vector3(
-                _finalDestination.x,        // Align exactly with magnet's X column
-                currentPos.y,              // Keep height
-                Mathf.Round(currentPos.z)  // Stay in current Z row (snapped to grid)
+                _finalDestination.x,   // Align exactly with magnet's X column
+                currentPos.y,          // Keep height
+                trueCenter.z           // Use the true center Z
             );
         }
     }
@@ -197,15 +212,15 @@ public class PullAlignState : IState
 public class BeingPulledState : IState
 {
     private IPullableObject _controller;
-    private float _moveSpeed = 5f; 
+    private float _moveSpeed = 5f;
     private float _carryoverBudget;
     private int _cellSize = 1;
     private Vector3 _targetPosition;
     private Vector3 _finalDestination;
 
     public BeingPulledState(
-        IPullableObject controller, 
-        Vector3 finalDestination, 
+        IPullableObject controller,
+        Vector3 finalDestination,
         float leftoverMovement,
         float moveSpeed,
         float cellSize)
@@ -234,8 +249,21 @@ public class BeingPulledState : IState
             float remaining = step - dist;
             controllerTransform.position = _targetPosition;
 
-            if (Robot.IsPathBlocked(controllerTransform, _cellSize * 1.5f))
+            // FIX 1: Check if we successfully reached the magnet's queue position
+            if (Vector3.Distance(controllerTransform.position, _finalDestination) < 0.1f)
             {
+                _controller.StopPulling(); // We arrived! Break out of the pulling state.
+                return;
+            }
+
+            // FIX 2: Calculate the exact direction we are being dragged
+            Vector3 pullDir = (_finalDestination - controllerTransform.position).normalized;
+            pullDir = new Vector3(Mathf.Round(pullDir.x), 0, Mathf.Round(pullDir.z));
+
+            // FIX 3: Pass the pull direction. If blocked, actually STOP pulling.
+            if (Robot.IsPathBlocked(controllerTransform, pullDir, _cellSize * 1.5f))
+            {
+                _controller.StopPulling(); // Hit a wall mid-pull. Abort!
                 return;
             }
 
@@ -253,7 +281,9 @@ public class BeingPulledState : IState
         Vector3 directionToDestination = (_finalDestination - _controller.GetTransform().position).normalized;
         // Snap direction to integer grid movements
         directionToDestination = new Vector3(Mathf.Round(directionToDestination.x), 0, Mathf.Round(directionToDestination.z));
-        _targetPosition = _controller.GetTransform().position + directionToDestination;
+
+        // FIX 4: Multiply by cell size so it works on grids larger than 1x1
+        _targetPosition = _controller.GetTransform().position + (directionToDestination * _cellSize);
     }
 
     public void Exit() { }
@@ -320,18 +350,18 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
 
     private void OnExplore()
     {
-        transform.position = _spawnPosition;
-        transform.rotation = _spawnRotation;
         _alignCoroutine = null;
         ChangeState(new IdleState(this));
+        transform.position = _spawnPosition;
+        transform.rotation = _spawnRotation;
     }
 
     private void OnPlan()
     {
-        transform.position = _spawnPosition;
-        transform.rotation = _spawnRotation;
         _alignCoroutine = null;
         ChangeState(new IdleState(this));
+        transform.position = _spawnPosition;
+        transform.rotation = _spawnRotation;
     }
 
     private void OnExecute()
@@ -357,10 +387,13 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
 
         Vector3 pos = platform.position;
 
-        Vector3 snappedCell = (new Vector3Int(
-            Mathf.FloorToInt(pos.x),
-            Mathf.FloorToInt(pos.y),
-            Mathf.FloorToInt(pos.z)));
+        // FIX: Replaced FloorToInt with RoundToInt and routed it through GridSnapper
+        Vector3Int cellPos = new Vector3Int(
+            Mathf.RoundToInt(pos.x),
+            Mathf.RoundToInt(pos.y),
+            Mathf.RoundToInt(pos.z)
+        );
+        Vector3 snappedCell = GridSnapper.CellCenter(cellPos);
 
         Vector3 targetPosition = new Vector3(snappedCell.x, transform.position.y, snappedCell.z);
 
@@ -472,13 +505,13 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
     {
         ChangeState(new BeingPulledState(controller, finalDestination, remaining, moveSpeed, cellSize));
     }
-    public static bool IsPathBlocked(Transform t, float checkDistance)
+    public static bool IsPathBlocked(Transform t, Vector3 direction, float checkDistance)
     {
         RaycastHit hit;
-
         Vector3 rayOrigin = t.position + (Vector3.up * 0.5f);
 
-        if (Physics.Raycast(rayOrigin, t.forward, out hit, checkDistance, _wallLayerMask))
+        // FIX: Check the actual direction of movement, not just t.forward
+        if (Physics.Raycast(rayOrigin, direction, out hit, checkDistance, _wallLayerMask))
         {
             if (hit.collider.CompareTag("Wall"))
             {
