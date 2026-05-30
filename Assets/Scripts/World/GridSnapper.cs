@@ -37,6 +37,14 @@ public static class GridSnapper
             Mathf.FloorToInt(inside.z));
     }
 
+    public static Vector3Int WorldToCell(Vector3 pos)
+    {
+        return new Vector3Int(
+            Mathf.FloorToInt(pos.x),
+            Mathf.FloorToInt(pos.y),
+            Mathf.FloorToInt(pos.z));
+    }
+
     public static Vector3 CellCenter(Vector3Int cell)
     {
         return new Vector3(

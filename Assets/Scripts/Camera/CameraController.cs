@@ -76,6 +76,11 @@ public class CameraController : MonoBehaviour, IGameSystem
         _gameEvents.OnExploreEntered += OnExplore;
         _gameEvents.OnPlanEntered += OnPlan;
         _gameEvents.OnExecuteEntered += OnExecute;
+
+        if (followTarget == null)
+        {
+            followTarget = FindFirstObjectByType<Robot>().transform;
+        }
     }
 
     private void OnDestroy()

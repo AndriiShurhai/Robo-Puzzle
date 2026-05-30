@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 6242304731408372908}
   - component: {fileID: 6590620907607415616}
   m_Layer: 0
-  m_Name: Sphere
+  m_Name: MagnetPrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

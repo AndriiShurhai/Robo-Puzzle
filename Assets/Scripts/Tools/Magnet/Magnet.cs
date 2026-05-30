@@ -77,13 +77,8 @@ public class MagnetActiveState : IState
             float queueOffset = _controller.HoldingDistance + (i * 1f); // 1f represents cell spacing
             Vector3 rawDestination = _controller.transform.position + (_controller.transform.forward * queueOffset);
 
-            // FIX: Route the predicted queue position through GridSnapper
-            Vector3Int cellCoords = new Vector3Int(
-                Mathf.RoundToInt(rawDestination.x),
-                Mathf.RoundToInt(rawDestination.y),
-                Mathf.RoundToInt(rawDestination.z)
-            );
-            Vector3 snappedDestination = GridSnapper.CellCenter(cellCoords);
+
+            Vector3 snappedDestination = GridSnapper.CellCenter(GridSnapper.WorldToCell(rawDestination));
 
             // Preserve consistent Y height
             snappedDestination.y = _controller.transform.position.y;
@@ -121,7 +116,7 @@ public class Magnet : MonoBehaviour, ISwitchableTool
         ChangeState(new MagnetNotActiveState(this));
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
         currentState?.Update();
     }

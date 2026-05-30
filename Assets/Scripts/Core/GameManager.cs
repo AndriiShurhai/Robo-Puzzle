@@ -38,6 +38,11 @@ public class GameManager : MonoBehaviour, IGameEvents
         }
         Instance = this;
         
+        if (player == null)
+        {
+            player = FindFirstObjectByType<Robot>();
+            gameSystems.Add(player);
+        }
 
         currentState = GameState.Exploring;
 

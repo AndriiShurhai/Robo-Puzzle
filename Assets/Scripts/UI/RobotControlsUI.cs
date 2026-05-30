@@ -16,6 +16,10 @@ public class RobotControlsUI : MonoBehaviour, IGameSystem
 
     private void Start()
     {
+        if (robot == null)
+        {
+            robot = FindFirstObjectByType<Robot>();
+        }
         _buttonLabel = robotMoveControl.GetComponentInChildren<TextMeshProUGUI>();
         robotMoveControl.onClick.AddListener(OnRobotMoveControlClicked);
     }
