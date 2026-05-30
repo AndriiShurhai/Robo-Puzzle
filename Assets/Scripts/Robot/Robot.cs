@@ -294,14 +294,16 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
     private IGameEvents _gameEvents;
     private IState _currentState;
     private Vector3 _pullDestination;
-    private Vector3 _spawnPosition;
-    private Quaternion _spawnRotation;
+    private Vector3? _spawnPosition;
+    private Quaternion? _spawnRotation;
     private Coroutine _alignCoroutine;
 
     private static int _wallLayerMask;
 
     private void Awake()
     {
+        _spawnPosition = null;
+        _spawnRotation = null;
         ChangeState(new IdleState(this));
     }
 
@@ -323,6 +325,8 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
 
     private void OnDestroy()
     {
+        _spawnPosition = null;
+        _spawnRotation = null;
         if (_gameEvents == null) return;
         _gameEvents.OnExploreEntered -= OnExplore;
         _gameEvents.OnPlanEntered -= OnPlan;
@@ -332,14 +336,20 @@ public class Robot : MonoBehaviour, IPullableObject, IGameSystem, IDirectable
     private void OnExplore()
     {
         _alignCoroutine = null;
-        transform.SetPositionAndRotation(_spawnPosition, _spawnRotation);
+        if (_spawnPosition != null || _spawnRotation != null)
+        {
+            transform.SetPositionAndRotation(_spawnPosition.Value, _spawnRotation.Value);
+        }
         ChangeState(new IdleState(this));
     }
 
     private void OnPlan()
     {
         _alignCoroutine = null;
-        transform.SetPositionAndRotation(_spawnPosition, _spawnRotation);
+        if (_spawnPosition != null || _spawnRotation != null)
+        {
+            transform.SetPositionAndRotation(_spawnPosition.Value, _spawnRotation.Value);
+        }
         ChangeState(new IdleState(this));
     }
 

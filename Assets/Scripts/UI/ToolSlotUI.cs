@@ -1,5 +1,6 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
+using TMPro;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -8,28 +9,38 @@ public class ToolSlotUI : MonoBehaviour,
     IDragHandler,
     IEndDragHandler
 {
-    [SerializeField] private ToolDefinition toolDefinition;
+    [SerializeField] private Image _icon;
+    [SerializeField] private TextMeshProUGUI _amountText;
 
-    private Image _icon;
+    private ToolDefinition _toolDefinition;
+    private int _currentAmount;
 
     private void Awake()
     {
         _icon = GetComponent<Image>();
     }
 
-    private void Start()
+    public void Setup(ToolDefinition tool, int amount)
     {
-        if (toolDefinition != null && toolDefinition.icon != null)
-        {
-            _icon.sprite = toolDefinition.icon;
-        }
+        _toolDefinition = tool;
+        _icon.sprite = tool.icon;
+        UpdateAmount(amount);
+    }
+
+    public void UpdateAmount(int amount)
+    {
+        _currentAmount = amount;
+        _amountText.text = amount.ToString();
+
+        // Dim the icon if we are out of stock
+        _icon.color = _currentAmount > 0 ? Color.white : new Color(1f, 1f, 1f, 0.4f);
     }
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (toolDefinition == null) return;
-        Debug.Log($"[ToolSlotUI] Begin drag of {toolDefinition.displayName}");
-        ToolPlacementSystem.Instance?.BeginPlacement(toolDefinition);
+        if (_toolDefinition == null || _currentAmount <= 0) return;
+        Debug.Log($"[ToolSlotUI] Begin drag of {_toolDefinition.displayName}");
+        ToolPlacementSystem.Instance?.BeginPlacement(_toolDefinition);
     }
 
     public void OnDrag(PointerEventData eventData)

@@ -64,6 +64,14 @@ public class GameManager : MonoBehaviour, IGameEvents
             }
         }
 
+        LevelData currentLevel = LevelManager.Instance.CurrentLevel;
+
+        // 1. Give the manager the exact tool amounts for THIS level
+        ToolsManager.Instance.SetupLevelLoadout(currentLevel.AvailableTools);
+
+        // 2. Tell the UI to draw the slots and numbers based on THIS level
+        ToolSlotsContainerUI.Instance.BuildSlots(currentLevel.AvailableTools);
+
         OnExploreEntered?.Invoke();
     }
 

@@ -12,6 +12,10 @@ public class LevelManager : MonoBehaviour
 
     private GameProgressData _progress;
 
+    private LevelData _currentLevel;
+
+    public LevelData CurrentLevel => _currentLevel;
+
     private void Awake()
     {
         // Standard Singleton setup
@@ -69,6 +73,7 @@ public class LevelManager : MonoBehaviour
 
     public void LoadLevel(LevelData levelToLoad)
     {
+        _currentLevel = levelToLoad;
         if (IsLevelUnlocked(levelToLoad.LevelID))
         {
             SceneManager.LoadScene(levelToLoad.SceneName);
